@@ -12,8 +12,7 @@ def reset_state():
     # clear in-memory DBs and session-related counters
     USER_DB.clear()
     FORUM_DB.clear()
-    # reset forum id counter by reloading module-level counter:
-    # simplest: re-import forum module to reset iterator (pytest runs in same process)
+    
     import importlib, app.forum
     importlib.reload(app.forum)
     yield
