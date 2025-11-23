@@ -8,7 +8,7 @@ class SearchDataset:
             {"id": "2", "title": "Data Penjualan", "tags": ["ekonomi", "dagang"], "filter": "restricted"},
             {"id": "3", "title": "Data Kesehatan", "tags": ["medis", "rumah sakit"], "filter": "public"},
         ]
-
+  
     def search(self, query: str = "", tag: str = "", fltr: str = ""):
         # 1. Cari berdasarkan tag
         if tag:

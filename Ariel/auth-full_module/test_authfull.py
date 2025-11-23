@@ -29,39 +29,44 @@ class TestAuthService(unittest.TestCase):
         self.auth = AuthService()
         print(f"\nMenjalankan: {self._testMethodName}")
 
-    # TC-1
+    # TC-1 login email dan password valid
     def test_TC1_login_email_password_valid(self):
         hasil = self.auth_service.login_with_email("user.valid@example.com", "password_benar123")
         self.assertEqual(hasil, "Login berhasil")
 
-    # TC-2
+    # TC-2 login email tidak valid
     def test_TC2_login_email_tidak_valid(self):
         hasil = self.auth_service.login_with_email("email.salah@example.com", "password_benar123")
         self.assertEqual(hasil, "Email tidak valid")
 
-    # TC-3
+    # TC-3 login password tidak valid
     def test_TC3_login_password_tidak_valid(self):
         hasil = self.auth_service.login_with_email("user.valid@example.com", "password_salah")
         self.assertEqual(hasil, "Password tidak valid")
 
-    # TC-4
+    # TC-4 login email dan password tidak valid
     def test_TC4_login_email_dan_password_tidak_valid(self):
         hasil = self.auth_service.login_with_email("email.salah@example.com", "password_salah")
         self.assertEqual(hasil, "Email tidak valid")
 
-    # TC-7
+    # TC-5 login google
+    def test_login_google(self):
+        self.assertTrue(login_google(True))
+    
+    # TC-6 login google akun baru
+    def test_TC6_login_google_new_account(self):
+        result = self.auth.login_with_oauth("google", account_logged_in=False)
+        self.assertEqual(result, "Redirect ke OAuth flow")
+
+    # TC-7 login facebook tidak didukung
     def test_TC7_login_gagal_facebook_tidak_didukung(self):
         hasil = self.auth_service.login_with_oauth("Facebook")
         self.assertEqual(hasil, "Provider facebook tidak didukung", "Seharusnya gagal karena Facebook tidak lagi didukung.")
 
-    # TC-8
+    # TC-8 login yahoo tidak didukung
     def test_TC8_login_gagal_yahoo_tidak_didukung(self):
         hasil = self.auth_service.login_with_oauth("Yahoo")
         self.assertEqual(hasil, "Provider yahoo tidak didukung", "Seharusnya gagal karena Yahoo tidak didukung.")
-
-    # TC-5 login google
-    def test_login_google(self):
-        self.assertTrue(login_google(True))
 
     # TC-11 register email data valid
     def test_register_valid(self):
@@ -79,14 +84,9 @@ class TestAuthService(unittest.TestCase):
     def test_register_password_empty(self):
         self.assertEqual(register_email("user@mail.com", ""), "Password kosong")
 
-    # Register email password kurang dari 7 karakter
+    # TC-15 Register email password kurang dari 7 karakter
     def test_register_password_short(self):
         self.assertEqual(register_email("user@mail.com", "123"), "Password terlalu pendek")
-
-    # TC-5
-    def test_TC6_login_google_new_account(self):
-        result = self.auth.login_with_oauth("google", account_logged_in=False)
-        self.assertEqual(result, "Redirect ke OAuth flow")
 
     # TC-17: Register tanpa reCAPTCHA
     def test_TC17_register_no_recaptcha(self):
