@@ -2,10 +2,12 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 
+from .firebase_client import init_firebase
+from .auth_firebase import AuthService
+from .dataset_firebase import DatasetService
+from .dataset import Dataset
+from .forum_firebase import ForumService
 from .session import Session
-from .auth import AuthService
-from .dataset import DatasetService, Dataset
-from .forum import ForumService
 from .exceptions import (
     AuthError, RegisterError, DatasetError,
     OAuthNotSupported, VerificationError, ForumError
@@ -13,11 +15,12 @@ from .exceptions import (
 
 app = FastAPI(title="Integration Test API")
 
-session = Session()
-auth_service = AuthService(session)
-dataset_service = DatasetService(session)
-forum_service = ForumService(session)
+db = init_firebase()  # inisialisasi sekali
 
+session = Session()
+auth_service = AuthService(session, db=db)
+dataset_service = DatasetService(session, db=db)
+forum_service = ForumService(session, db=db)
 
 # ---------- SCHEMAS ----------
 class LoginRequest(BaseModel):
@@ -129,10 +132,12 @@ def create_dataset(data: DatasetRequest):
 @app.post("/forum")
 def create_forum(data: ForumRequest):
     try:
+        # pass auth_service supaya forum service bisa cek verifikasi penuh
         return forum_service.create_forum(
             data.title,
             data.content,
-            data.tags
+            data.tags,
+            auth_service
         )
     except (AuthError, ForumError) as e:
         raise HTTPException(status_code=400, detail=str(e))

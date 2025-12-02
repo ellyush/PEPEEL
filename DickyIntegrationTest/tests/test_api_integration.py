@@ -1,29 +1,39 @@
 import pytest
 from fastapi.testclient import TestClient
-
-from app.api import app
-from app.auth import USER_DB
-from app.forum import FORUM_DB
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+from app.api import app, session
+from app.firebase_client import init_firebase
 
 client = TestClient(app)
+db = init_firebase()
 
 
+# ---------- HELPERS ----------
+def clear_collection(name: str):
+    col = db.collection(name)
+    docs = col.stream()
+    for doc in docs:
+        doc.reference.delete()
+
+
+# ---------- FIXTURE ----------
 @pytest.fixture(autouse=True)
-def reset_state():
-    USER_DB.clear()
-    FORUM_DB.clear()
+def reset_state_firestore():
+    # clear firestore state
+    clear_collection("users")
+    clear_collection("forums")
+    clear_collection("datasets")
 
-    # RESET SESSION (INI YANG KURANG)
-    from app.api import session
+    # reset session (WAJIB)
     session.clear()
 
     yield
 
-    USER_DB.clear()
-    FORUM_DB.clear()
+    clear_collection("users")
+    clear_collection("forums")
+    clear_collection("datasets")
     session.clear()
-
-
 
 def test_api_phone_verification_and_face_verification_flow():
     # create user with phone
@@ -48,11 +58,18 @@ def test_api_phone_verification_and_face_verification_flow():
     assert res.status_code == 200
     assert "successful" in res.json()["message"].lower()
 
-    # check stored state
-    user = USER_DB["08123456789"]
-    assert user.phone_verified is True
-    assert user.face_verified is True
-    assert user.persona_id == "persona-api-1"
+    # check stored state in Firestore
+    docs = db.collection("users").where("phone", "==", "08123456789").limit(1).stream()
+    doc = next(docs, None)
+
+    assert doc is not None, "User document not found in Firestore"
+
+    user = doc.to_dict()
+    assert user is not None
+
+    assert user["phone_verified"] is True
+    assert user["face_verified"] is True
+    assert user["persona_id"] == "persona-api-1"
 
 
 def test_api_forum_requires_full_authentication():
@@ -65,7 +82,7 @@ def test_api_forum_requires_full_authentication():
         "phone": "08129990001"
     })
 
-    # attempt to create forum → must fail
+    # attempt create forum → must fail
     res = client.post("/forum", json={
         "title": "Judul API",
         "content": "Isi forum",
@@ -88,8 +105,8 @@ def test_api_forum_requires_full_authentication():
     })
     assert res.status_code == 200
     data = res.json()
-    assert data["title"] == "Judul API"
 
+    assert data["title"] == "Judul API"
 
 def test_api_dataset_requires_login_then_success():
     # attempt create dataset without login
